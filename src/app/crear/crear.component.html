@@ -1,0 +1,19 @@
+<mat-card>
+  <mat-card-title>Formulario para editar producto</mat-card-title>
+  <form [formGroup]="productoForm" (ngSubmit)="guardar()">
+    <mat-form-field appearance="fill">
+      <mat-label>Nombre</mat-label>
+      <input matInput formControlName="nombre" placeholder="Nombre" />
+    </mat-form-field>
+    <mat-form-field appearance="fill">
+      <mat-label>precio</mat-label>
+      <input matInput formControlName="precio" type="number" placeholder="Precio" />
+    </mat-form-field>
+    <mat-form-field appearance="fill">
+      <mat-label>Stock</mat-label>
+      <input matInput formControlName="stock" type="number" placeholder="Stock" />
+    </mat-form-field>
+    <button mat-raised-button color="primary" type="submit" [disabled]="!productoForm.valid">Guardar</button>
+    <button mat-button color="warn" type="button" (click)="navegarInicio()">Cancelar</button>
+  </form>
+</mat-card>

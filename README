@@ -1,0 +1,599 @@
+# 🅰️ Consumo de una API REST en Angular
+
+Este proyecto muestra cómo consumir una API REST usando Angular, Angular Material y `HttpClient`.
+
+## ✅ Requisitos Previos
+
+- Node.js y npm instalados
+- Angular CLI instalado: `npm install -g @angular/cli`
+- Backend corriendo en `http://localhost:8080`
+
+---
+
+## 🛠️ Pasos para implementar
+
+### 1. Crear la aplicación Angular
+
+```bash
+ng new nombre-aplicacion
+cd nombre-aplicacion
+```
+
+### 2. Generar interfaz `Producto`
+
+```bash
+ng g interface interface/producto
+```
+
+**`src/app/interface/producto.ts`**
+
+```ts
+export interface Producto {
+  id: number;
+  nombre: string;
+  precio: number;
+  stock: number;
+}
+```
+
+### 3. Crear servicio para consumir la API
+
+```bash
+ng g service producto
+```
+
+incluir url de la api:
+
+```ts
+private apiUrl = 'http://localhost:8080/api/v1/productos'
+```
+
+Importa el servicio HttpClient, que Angular proporciona para hacer peticiones HTTP (GET, POST, PUT, DELETE, etc.) a un backend o API externa.
+
+```ts
+constructor(private http: HttpClient) { }
+```
+
+Método que realiza una petición GET a la API para obtener todos los productos. Devuelve un Observable de un arreglo de productos (Producto[]).
+
+#### nota: Un Observable es una fuente de datos que puede emitir valores de forma asincrónica, es decir, con el tiempo.Tú te "suscribes" a ese Observable y recibes los datos cuando estén disponibles.
+
+```ts
+obtenerProductos(): Observable<Producto[]>{
+    return this.http.get<Producto[]>(this.apiUrl);
+}
+```
+
+**`src/app/producto.service.ts`**
+
+```ts
+import { Injectable } from "@angular/core";
+import { HttpClient } from "@angular/common/http";
+import { Observable } from "rxjs";
+import { Producto } from "./interface/producto";
+
+@Injectable({
+  providedIn: "root",
+})
+export class ProductoService {
+  private apiUrl = "http://localhost:8080/api/v1/productos";
+
+  constructor(private http: HttpClient) {}
+
+  obtenerProductos(): Observable<Producto[]> {
+    return this.http.get<Producto[]>(this.apiUrl);
+  }
+}
+```
+
+### 4. Crear componente para listar productos
+
+```bash
+ng g c lista
+```
+
+añadir onInit para que haga una accion determinada al cargar el componete
+```ts
+implements OnInit
+```
+
+crear las variables para las columnas de la tabla y la lista para almacenar los datos
+
+```ts
+displayedColumns: string[] = ['id', 'nombre', 'precio', 'stock', 'acciones'];
+dataSource: Producto[] = [];
+```
+
+inyectar las dependencias en el construtor para consumir el servicio de productos
+
+```ts
+constructor(
+    private tiendaService: ProductoService,
+    private router: Router
+){}
+```
+
+en la función onInit se va a llamar a la función de obtener productos del servicio creado anteriormente, Con subscribe(), se obtiene el resultado (los productos) y se asignan a dataSource, actualizando así los datos mostrados en la tabla.
+
+```ts
+ngOnInit(): void {
+    this.tiendaService.obtenerProductos().subscribe((productos)=>{
+        this.dataSource = productos;
+    });
+}
+```
+
+**`src/app/lista/lista.component.ts`**
+
+```ts
+import { Component, OnInit } from "@angular/core";
+import { ProductoService } from "../producto.service";
+import { Producto } from "../interface/producto";
+import { Router } from "@angular/router";
+
+@Component({
+  selector: "app-lista",
+  templateUrl: "./lista.component.html",
+})
+export class ListaComponent implements OnInit {
+  displayedColumns: string[] = ["id", "nombre", "precio", "stock", "acciones"];
+  dataSource: Producto[] = [];
+
+  constructor(private tiendaService: ProductoService, private router: Router) {}
+
+  ngOnInit(): void {
+    this.tiendaService.obtenerProductos().subscribe((productos) => {
+      this.dataSource = productos;
+    });
+  }
+
+  editarProducto(producto: Producto): void {
+    // Lógica para editar
+  }
+
+  eliminarProducto(producto: Producto): void {
+    // Lógica para eliminar
+  }
+
+  agregarProducto(): void {
+    this.router.navigate(["/agregar"]);
+  }
+}
+```
+
+**`src/app/lista/lista.component.html`**
+
+```html
+<mat-card-title>Lista de productos</mat-card-title>
+<div>
+    <table mat-table [dataSource]="dataSource" class="mat-elevation-z8">
+    <ng-container matColumnDef="id">
+        <th mat-header-cell *matHeaderCellDef>ID</th>
+        <td mat-cell *matCellDef="let producto">{{ producto.id }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="nombre">
+        <th mat-header-cell *matHeaderCellDef>Nombre</th>
+        <td mat-cell *matCellDef="let producto">{{ producto.nombre }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="precio">
+        <th mat-header-cell *matHeaderCellDef>Precio</th>
+        <td mat-cell *matCellDef="let producto">{{ producto.precio }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="stock">
+        <th mat-header-cell *matHeaderCellDef>Stock</th>
+        <td mat-cell *matCellDef="let producto">{{ producto.stock }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="acciones">
+        <th mat-header-cell *matHeaderCellDef>Acciones</th>
+        <td mat-cell *matCellDef="let producto">
+        <button mat-raised-button>Editar</button>
+        <button mat-raised-button>Eliminar</button>
+        </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+</table>
+
+</div>
+```
+
+### 5. Añadir Angular Material
+
+```bash
+ng add @angular/material
+```
+
+importar las dependencias para que funcionen las etiquetas en html de angular materia
+
+```ts
+import { CommonModule } from '@angular/common';
+import { MatCardModule } from '@angular/material/card'
+import { MatTableModule } from '@angular/material/table';
+```
+
+### 6. Configurar `app.config.ts` para habilitar `HttpClient`
+
+**`src/app/app.config.ts`**
+
+```ts
+import { ApplicationConfig } from "@angular/core";
+import { provideHttpClient } from "@angular/common/http";
+import { provideRouter } from "@angular/router";
+import { provideZoneChangeDetection } from "@angular/platform-browser";
+import { routes } from "./app.routes";
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideZoneChangeDetection({ eventCoalescing: true }),
+    provideRouter(routes),
+    provideHttpClient(),  //importante añadir esta linea
+  ],
+};
+```
+
+### 7. Configurar las rutas
+
+añadir la ruta al componente que se creó para listar los productos:
+
+```ts
+{ path: '', redirectTo: 'lista', pathMatch:'full' },
+{ path: 'lista', component: ListaComponent },
+{path: '**', redirectTo: 'lista'}
+```
+
+**`src/app/app.routes.ts`**
+
+```ts
+import { Routes } from '@angular/router';
+import { ListaComponent } from './lista/lista.component';
+
+export const routes: Routes = [
+    { path: '', redirectTo: 'lista', pathMatch:'full' },
+    { path: 'lista', component: ListaComponent },
+    {path: '**', redirectTo: 'lista'}
+
+];
+```
+
+---
+
+## 🧪 Ejecutar la aplicación
+
+```bash
+ng serve
+```
+
+Abre tu navegador en `http://localhost:4200`.
+y se podrá ver los productos que se tienen creados en caso de que existan en la base de datos
+
+### 9. Crear funciones de editar, eliminar y crear productos en el componente
+ 
+Añadir las funciones (vacias) para poder declarar la funcion en los botones
+
+```ts
+eliminarProducto(producto: Producto): void{
+
+}
+
+editarProducto(producto: Producto): void{
+
+}
+
+agregarProducto(): void{
+
+}
+```
+
+### 8. Dar funcionalidad al botón eliminar, editar y agregar productos
+
+en el html del componente "lista" modificar el botón para eliminar y editar: 
+
+```ts
+<button mat-raised-button color="primary" (click)="editarProducto(producto)">Editar</button>
+<button mat-raised-button color="warn" (click)="eliminarProducto(producto)">Eliminar</button>  
+```
+
+añadir el boton para crear nuevos productos: 
+
+```ts
+<button mat-button (click)="agregarProducto()">Añadir</button>
+```
+
+### 9. Agregar metodos para el CRUD
+
+Los botones ya tienen una funcion asignada, pero hace falta que esa funcion haga las acciones que se esperan asi que el siguiente paso es modificar el servicio para añadir esas funcionalidades
+
+### Metodo para eliminar un producto
+
+Se pasa como parametro un objeto producto y devuelve un observable de cualquier tipo porque se espera o un status o un mensaje poor parte del backend
+```ts
+eliminarProducto(id: number): Observable<any>{
+    return this.http.delete(`${this.apiUrl}/${id}`);
+}
+  ```
+### Metodo para editar un producto
+se pasa como paratemtro un objeto producto para editarlo y su id para que sepa cual es y devuelve un observable de producto
+```ts
+editarProducto(producto: Producto, id:number): Observable<Producto>{
+    return this.http.put<Producto>(`${this.apiUrl}/${id}`, producto);
+}
+  ```
+
+### Metodo para agregar un producto
+se pasa como parametro un producto y va a devolver un observable de un  prducto
+```ts
+crearProducto(producto: Producto): Observable<Producto>{
+    return this.http.post<Producto>(`${this.apiUrl}`, producto);
+}
+  ```
+
+### Metodo para obtener un producto por su id
+se pasa como parametro un id y va a devolver un observable de un  prducto
+```ts
+productoPorId(id: number): Observable<Producto> {
+  return this.http.get<Producto>(`${this.apiUrl}/${id}`);
+}
+  ```
+
+### 10. Implementar metodos del servicio en el componente
+### 10.1 metodo eliminar
+En el componente de lista añadimos la funcionalidad al metodo vacio que habiamos creado anteriormente:
+---
+La función eliminarProducto(producto: Producto) verifica primero si el producto tiene un ID válido; si no lo tiene, termina la ejecución. Si el ID existe, llama al método del servicio que realiza una petición DELETE al backend para eliminar el producto con ese ID. Luego se suscribe a la respuesta del servidor: si la eliminación es exitosa, actualiza la lista dataSource filtrando el producto eliminado para que ya no aparezca en la tabla; si ocurre un error durante la petición, lo muestra en la consola. Esta lógica permite reflejar inmediatamente en la interfaz la eliminación sin necesidad de recargar los datos desde el servidor.
+
+ ```ts
+ 
+  eliminarProducto(producto: Producto): void{
+    if(!producto.id)return;
+    this.tiendaService.eliminarProducto(producto.id).subscribe({
+      next: ()=>{
+        this.dataSource = this.dataSource.filter(p=>p.id !== producto.id);
+      },
+      error: (err) => {
+        console.error('Error eliminado producto', err);
+      }
+    })
+  }
+  ```
+
+### 11. editar el producto
+Para editar un producto será necesario crear otro componente para añadir el formulario de editar
+
+``` bash
+ng g c editar
+```
+
+#### Declarar las variables: 
+aqui igual que el antrior componnte se hará uso de OnInit para cargar los datos del produto que se va a editar: 
+
+``` ts
+export class EditarComponent implements OnInit
+```
+Como es un formulario reactivo es necesario implemenrar FormGroup: 
+
+``` ts
+productoForm: FormGroup;
+```
+
+es necesario almacenar el id del producto para editar:
+``` ts
+productoId: number | null = null;
+```
+
+Implementar una bandera para mostrar o no un indicadoir de carga mientras se obtienen los datos del producto: 
+
+``` ts
+  cargando = false;
+
+```
+
+#### constructor
+en el constructor se inyectaran las dependencias necesarias: 
+- ActivatedRoute: para leer parámetros de la URL.
+- TiendaService: para interactuar con la API de productos.
+- FormBuilder: para crear el formulario reactivo.
+- Router: para redirigir al usuario después de guardar.
+
+``` ts
+constructor(
+    private route: ActivatedRoute,
+    private tiendaService: TiendaService,
+    private fb: FormBuilder,
+    private router: Router
+) 
+```
+
+despues se definen la estructra del formulario con validaciones: 
+- nombre: obligatorio.
+- precio y stock: obligatorios y deben ser mayores o iguales a 0.
+
+#### onInit
+Se extrae el parámetro id desde la URL y se convierte a número.
+``` ts
+this.productoId = Number(this.route.snapshot.paramMap.get('id'));
+```
+
+en caso de ser un id valido se activa el indcador de carga, se obtiene el producto con su id con la funcion del servicio, en caso de que si lo encuentre carga sus valores al formulario y se cambia el estado de cargando a false, en cao de que falle devuelve el error
+``` ts
+if (this.productoId) {
+    this.cargando = true;
+    this.productoService.productoPorId(this.productoId).subscribe({
+      next: (producto) => {
+        this.productoForm.patchValue(producto);
+        this.cargando = false;
+      },
+      error: (err) => {
+        console.error('Error al obtener el producto:', err);
+        this.cargando = false;
+      }
+    });
+  }
+```
+el siguiente paso es la funcion para guardar los cambios del producto. Esta fncion igual va a verificar que el formulario este valido y el id del producto exista, en ese caso se suscribe al metodo editarProducto que devuelve un onbservable de producto; en caso de que sea exitoso se regresa a la pantalla de la lista y en caso de que no se devuelve el error por consola.
+``` ts
+    guardar(): void {
+        if (this.productoForm.valid && this.productoId) {
+            this.tiendaService.editarProducto(this.productoId, this.productoForm.value).subscribe({
+                next: () => {
+                    this.router.navigate(['/listar']);
+                },
+                error: err => {
+                    console.error('Error actualizando producto', err);
+                }
+            });
+        }
+    }
+```
+
+por ultimo una funcion para cancelar en caso de que se arrepienta de hacer el cambio: la funcion solo hace la navegacion a la pantalla de lista
+``` ts
+    public navegarInicio() {
+        this.router.navigate(['/listar']);
+    }
+```
+
+en el HTML vamos a declarar un formulario para el grupo que se creó (productoForm), y de paso se declara que función va a llamar cuando se envíe el formulario
+``` html
+<mat-card>
+    <mat-card-title>Formulario para editar producto</mat-card-title>
+    <form [formGroup]="productoForm" (ngSubmit)="guardar()">
+        <!-- agregar aqui los campos de entrada -->
+    </form>
+</mat-card>
+```
+
+ahora sigue agregar los campos de entrada para el formulario:
+- campo para nombre, stock y precio
+- ejemplo tomado de la documentacion de angular material: de la seccion mat-form-field
+``` html
+    <mat-form-field appearance="fill">
+      <mat-label>Nombre</mat-label>
+      <input matInput formControlName="nombre" placeholder="Nombre" />
+    </mat-form-field>
+    <mat-form-field appearance="fill">
+      <mat-label>precio</mat-label>
+      <input matInput formControlName="precio" placeholder="Precio" />
+    </mat-form-field>
+    <mat-form-field appearance="fill">
+      <mat-label>Stock</mat-label>
+      <input matInput formControlName="stock" placeholder="Stock" />
+    </mat-form-field>
+    <button mat-raised-button color="primary" type="submit" [disabled]="!productoForm.valid || cargando">Guardar</button>
+    <button mat-button color="warn" type="button" (click)="navegarInicio()">Cancelar</button>
+  
+
+```
+
+importante importar las siguientes dependencias: 
+
+```ts
+import { Component } from '@angular/core';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
+import { ProductoService } from '../services/producto.service';
+import { MatCard, MatCardModule } from "@angular/material/card";
+import { MatFormField, MatFormFieldModule, MatLabel } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+
+  imports: [MatCardModule, MatInputModule, MatLabel, MatFormFieldModule, ReactiveFormsModule],
+```
+
+por ultimo añadir la ruta en el documento routes
+``` ts
+    { path: 'editar/:id', component: EditarComponent },
+```
+
+Añadir funcionalidad al boton de editar en la lista de productos. 
+
+``` ts
+   editarProducto(producto: Producto):void{
+    if(!producto.id)return;
+    this.router.navigate(['/editar', producto.id])
+  }
+```
+
+### 12. Componente para añadir producto
+Generar componente
+``` bash
+ng g c crear
+```
+Se puede reutilizar el formgroup, constructor del componente editar: 
+``` ts
+  productoForm: FormGroup;
+
+  constructor(
+    private productoService: ProductoService,
+    private fb: FormBuilder,
+    private router: Router
+  ) {
+    this.productoForm = this.fb.group({
+      nombre: ['', Validators.required],
+      precio: [0, [Validators.required, Validators.min(0)]],
+      stock: [0, [Validators.required, Validators.min(0)]]
+    });
+  }
+```
+
+
+función para guardar el prducto nuevo: en esta funcion se verifica que el producto es valido y si se cumple llama al servicio de crearProducto y se suscribe a la funcion que devuelve un observable de producto:
+``` ts
+  guardar(): void {
+    if (this.productoForm.valid) {
+      this.productoService.crearProducto(this.productoForm.value).subscribe({
+        next: () => {
+          this.router.navigate(['/lista']);
+        },
+        error: err => {
+          console.error('Error crear producto', err);
+        }
+      });
+    }
+  }
+```
+por ultimo el navegar al inicio 
+``` ts
+  public navegarInicio() {
+    this.router.navigate(['/listar']);
+  }
+```
+
+Añadir la ruta en el archivo de rutas:
+```ts
+    { path: 'crear', component: CrearComponent },
+```
+
+Añadir la ruta en el boton de la lista de productos
+```ts
+  agregarProducto(): void{
+    this.router.navigate(['crear']);
+  }
+  ```
+
+  para el HTML de este componente se puede reutilizar el de editar porque son los mismos campos
+
+``` html
+<mat-card>
+  <mat-card-title>Formulario para editar producto</mat-card-title>
+  <form [formGroup]="productoForm" (ngSubmit)="guardar()">
+    <mat-form-field appearance="fill">
+      <mat-label>Nombre</mat-label>
+      <input matInput formControlName="nombre" placeholder="Nombre" />
+    </mat-form-field>
+    <mat-form-field appearance="fill">
+      <mat-label>precio</mat-label>
+      <input matInput formControlName="precio" type="number" placeholder="Precio" />
+    </mat-form-field>
+    <mat-form-field appearance="fill">
+      <mat-label>Stock</mat-label>
+      <input matInput formControlName="stock" type="number" placeholder="Stock" />
+    </mat-form-field>
+    <button mat-raised-button color="primary" type="submit" [disabled]="!productoForm.valid">Guardar</button>
+    <button mat-button color="warn" type="button" (click)="navegarInicio()">Cancelar</button>
+  </form>
+</mat-card>
+```
